@@ -47,6 +47,55 @@ const App = () => {
     }
   }, []);
 
+  // Function to handle image download
+  const handleDownload = useCallback(() => {
+    if (!originalImage || !currentFilter) {
+      setError("Please upload an image and select a filter before downloading.");
+      return;
+    }
+
+    // 1. Create a temporary canvas and context
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    // Set crossOrigin to anonymous to prevent tainting the canvas, 
+    // though usually not needed for Data URLs, it's good practice.
+    img.crossOrigin = "anonymous"; 
+
+    img.onload = () => {
+      // 2. Set canvas dimensions to match the original image
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // 3. Apply the CSS filter string directly to the canvas context
+      // This is supported by most modern browsers for image manipulation.
+      ctx.filter = currentFilter.style;
+
+      // 4. Draw the image onto the canvas with the filter applied
+      ctx.drawImage(img, 0, 0);
+
+      // 5. Convert the canvas content (the filtered image) to a data URL
+      const dataURL = canvas.toDataURL('image/png');
+      
+      // 6. Create a temporary link and trigger the download
+      const link = document.createElement('a');
+      link.href = dataURL;
+      // Generate a user-friendly file name
+      const cleanName = currentFilter.name.replace(/\s/g, '');
+      link.download = `RajendraJatVlogs_${cleanName}_Filtered.png`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the temporary canvas element
+      canvas.remove();
+    };
+
+    img.src = originalImage;
+  }, [originalImage, currentFilter]);
+
   // JSX for the main application
   return (
     // Responsive padding: p-4 for mobile, sm:p-8 for larger screens
@@ -62,6 +111,15 @@ const App = () => {
           .preview-hover:hover {
             transform: translateY(-4px) scale(1.02);
             box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+          }
+          .download-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+          }
+          .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            background-color: #374151; /* Gray-700 */
           }
         `}
       </style>
@@ -113,9 +171,26 @@ const App = () => {
         <>
           {/* Main Display Area */}
           <div className="max-w-4xl mx-auto mb-12">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 mb-4 text-center">
-              Current Filter: <span className="text-gray-400">{currentFilter.name}</span>
-            </h2>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
+              <h2 className="text-xl sm:text-2xl font-semibold text-gray-100 text-center sm:text-left mb-2 sm:mb-0">
+                Current Filter: <span className="text-gray-400">{currentFilter.name}</span>
+              </h2>
+              
+              {/* Download Button */}
+              <button
+                onClick={handleDownload}
+                // Styled with a slight gradient for emphasis on the dark theme
+                className="w-full sm:w-auto px-6 py-2 bg-gray-600 text-gray-100 font-bold rounded-lg download-button hover:bg-gray-700 transition duration-200 flex items-center justify-center space-x-2"
+                title="Download the currently selected filtered image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 12.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v9a1 1 0 11-2 0V3a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                <span>Download Filtered Image</span>
+              </button>
+            </div>
+
             {/* Image uses fluid width and constrained height for mobile viewing */}
             <div className="bg-gray-900 rounded-xl overflow-hidden image-shadow border-4 border-gray-700">
               <img
